@@ -5,8 +5,11 @@ import javax.persistence.*;
 
 @Entity
 class Category {
+   // The id is unique to both Category and Question tables, so that a category
+   // can unambiguously categorize both questions and other categories.
    @Id
-   @GeneratedValue
+   @TableGenerator(name="gid", table="gid", initialValue=1)
+   @GeneratedValue(strategy=GenerationType.TABLE, generator="gid")
    private long id;
    @Basic
    private String name;
@@ -14,7 +17,6 @@ class Category {
    public Category(String name) {
       this.name = name;
    }
-   
    public String getName() {
       return name;
    }
@@ -22,8 +24,11 @@ class Category {
 
 @Entity
 class Question {
+   // The id is unique to both Category and Question tables, so that a category
+   // can unambiguously categorize both questions and other categories.
    @Id
-   @GeneratedValue
+   @TableGenerator(name="gid", table="gid", initialValue=1)
+   @GeneratedValue(strategy=GenerationType.TABLE, generator="gid")
    private long id;
    @Basic
    private String text;
