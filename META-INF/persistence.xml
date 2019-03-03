@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="http://java.sun.com/xml/ns/persistence"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    version="1.0">
+    <persistence-unit name="axiom" transaction-type="RESOURCE_LOCAL">
+        <provider>org.apache.openjpa.persistence.PersistenceProviderImpl</provider>
+        <class>axiom.Category</class>
+        <class>axiom.Question</class>
+        <properties>
+           <property name="openjpa.Log" value="none"/>
+           <property name="openjpa.jdbc.SynchronizeMappings" 
+                value="buildSchema(ForeignKeys=true)"/>
+            <property name="openjpa.ConnectionURL" 
+                value="jdbc:derby:axiom.db;create=true"/>
+            <property name="openjpa.ConnectionDriverName" 
+                value="org.apache.derby.jdbc.EmbeddedDriver"/>
+            <!--property name="openjpa.ConnectionUserName" 
+                value="admin"/>
+            <property name="openjpa.ConnectionPassword" 
+                value="admin"/-->
+        </properties>
+    </persistence-unit>
+</persistence>

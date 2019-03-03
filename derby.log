@@ -1,0 +1,16 @@
+----------------------------------------------------------------
+Sat Mar 02 22:22:11 EST 2019:
+Booting Derby version The Apache Software Foundation - Apache Derby - 10.12.1.1 - (1704137): instance a816c00e-0169-4192-c4d3-000007313078 
+on database directory /Users/andrew/Desktop/winter_2019/COIS 2240H Software Modelling and Design/project/axiom.db with class loader sun.misc.Launcher$AppClassLoader@18b4aac2 
+Loaded from file:/Users/andrew/Desktop/winter_2019/COIS%202240H%20Software%20Modelling%20and%20Design/project/lib/derby-10.12.1.1.jar
+java.vendor=Oracle Corporation
+java.runtime.version=1.8.0_192-b12
+user.dir=/Users/andrew/Desktop/winter_2019/COIS 2240H Software Modelling and Design/project
+os.name=Mac OS X
+os.arch=x86_64
+os.version=10.13.6
+derby.system.home=null
+Database Class Loader started - derby.database.classpath=''
+----------------------------------------------------------------
+Sat Mar 02 22:22:12 EST 2019:
+Shutting down instance a816c00e-0169-4192-c4d3-000007313078 on database directory /Users/andrew/Desktop/winter_2019/COIS 2240H Software Modelling and Design/project/axiom.db with class loader sun.misc.Launcher$AppClassLoader@18b4aac2 
