@@ -1,5 +1,4 @@
 **/*.DS_Store
 **/*.class
-axiom.db/
-derby.log
-
+Axiom.jar
+axiom-db.xml
