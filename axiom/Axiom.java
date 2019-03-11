@@ -78,8 +78,12 @@ class Category implements IFlatTable {
    public Category(long id, String name) {
       this.name = name;
    }
+   
+   public long getID() {
+      return this.id;
+   }
    public String getName() {
-      return name;
+      return this.name;
    }
    public static Category deserialize(String text) {
       String parts[] = text.split(",");
@@ -102,11 +106,14 @@ class Question implements IFlatTable {
       this.answer = answer;
    }
    
+   public long getID() {
+      return this.id;
+   }
    public String getText() {
-      return text;
+      return this.text;
    }
    public String getAnswer() {
-      return answer;
+      return this.answer;
    }
    public static Question deserialize(String text) {
       String parts[] = text.split(",");
@@ -121,22 +128,40 @@ class Question implements IFlatTable {
 public class Axiom {
 	public static void main(String []args) throws Exception {
       FlatDB db = new FlatDB("axiom-db.xml");
-      
-      if (args.length == 0) {
-         for (Object q : db.select(Question.class))
-            System.out.println(String.format("%s", ((Question)q).getText()));
-         return;
-      }
-      switch (args[0]) {
-         case "create": {
-            if (args.length != 3)
+      String command = (args.length > 0)? args[0] : "help";
+      switch (command) {
+         case "list":
+            for (Object row : db.select(Question.class)) {
+               Question question = (Question)row;
+               System.out.println(String.format("%d:%s",
+                  question.getID(), question.getText()));
+            }
+            break;
+         case "create":
+            if (args.length != 3) {
+               System.err.println("Invalid number of arguments.");
                return;
+            }
             db.insert(new Question(0, args[1], args[2]));
             break;
-         }
-         default: {
+         case "assign":
+            if (args.length < 3) {
+               System.err.println("Invalid number of arguments.");
+               return;
+            }
             break;
-         }
+         case "help":
+            System.err.println(
+               "Usage: java -jar Axiom [COMMAND ...]"
+               + "\nCommands:"
+               + "\n  create QUESTION ANSWER"
+               + "\n  assign ITEM CATEGORY1 [CATEGORY2 ...]"
+               + "\n  list"
+               + "\n  help");
+            break;
+         default:
+            System.err.println("Invalid command.");
+            return;
       }
       db.save();
 	}
