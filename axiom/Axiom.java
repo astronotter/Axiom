@@ -16,24 +16,30 @@ class FlatDB {
       this.filename = filename;
       this.entities = new ArrayList<Object>();
    
-      String lines[] = Files.lines(Paths.get(filename)).toArray(String[]::new);
-      for (String line : lines) {
-         String parts[] = line.split(":");
-         Class tableClass = Class.forName(parts[0]);
-         if (tableClass == null) {
-            System.err.println(String.format(
-               "Warning: Cannot find class '%s'. Ignoring entry.",
-               parts[0]));
-            continue;
+      try {
+         String lines[] = Files.lines(Paths.get(filename)).toArray(String[]::new);
+         for (String line : lines) {
+            String parts[] = line.split(":");
+            Class tableClass = Class.forName(parts[0]);
+            if (tableClass == null) {
+               System.err.println(String.format(
+                  "Warning: Cannot find class '%s'. Ignoring entry.",
+                  parts[0]));
+               continue;
+            }
+            Method deserializeMethod = tableClass.getDeclaredMethod("deserialize", String.class);
+            if (deserializeMethod == null) {
+               System.err.println(String.format(
+                  "Warning: Cannot find deserialize method for class '%s'. Ignoring entry.",
+                  parts[0]));
+               continue;
+            }
+            this.entities.add(deserializeMethod.invoke(tableClass, parts[1]));
          }
-         Method deserializeMethod = tableClass.getDeclaredMethod("deserialize", String.class);
-         if (deserializeMethod == null) {
-            System.err.println(String.format(
-               "Warning: Cannot find deserialize method for class '%s'. Ignoring entry.",
-               parts[0]));
-            continue;
-         }
-         this.entities.add(deserializeMethod.invoke(tableClass, parts[1]));
+      }
+      catch (NoSuchFileException notfound) {
+         // Silently ignore, the file not existing is treated the same as an
+         // empty db
       }
    }
    
@@ -75,14 +81,18 @@ class FlatDB {
 
 
 class Category {
-   private long id;
+   private UUID id;
    private String name;
    
-   public Category(long id, String name) {
+   public Category(UUID id, String name) {
+      this.id = id;
       this.name = name;
    }
+   public Category(String name) {
+      this(UUID.randomUUID(), name);
+   }
    
-   public long getID() {
+   public UUID getID() {
       return this.id;
    }
    public String getName() {
@@ -91,52 +101,55 @@ class Category {
    public static Category deserialize(String text) {
       String parts[] = text.split(",");
       // TODO validate input
-      return new Category(Integer.parseInt(parts[0]), parts[1]);
+      return new Category(UUID.fromString(parts[0]), parts[1]);
    }
    public String serialize() {
-      return String.format("%d,%s", this.id, this.name);
+      return String.format("%s,%s", this.id, this.name);
    }
 }
 
 class Categorize {
-   private long categoryID;
-   private long elementID;
+   private UUID categoryID;
+   private UUID elementID;
    
-   public Categorize(long categoryID, long elementID) {
+   public Categorize(UUID categoryID, UUID elementID) {
       this.categoryID = categoryID;
       this.elementID = elementID;
    }
    
-   public long getCategoryID() {
+   public UUID getCategoryID() {
       return this.categoryID;
    }
-   public long getElementID() {
+   public UUID getElementID() {
       return this.elementID;
    }
    
    public static Categorize deserialize(String text) {
       String parts[] = text.split(",");
       // TODO validate input
-      return new Categorize(Integer.parseInt(parts[0]),
-         Integer.parseInt(parts[1]));
+      return new Categorize(UUID.fromString(parts[0]),
+                            UUID.fromString(parts[1]));
    }
    public String serialize() {
-      return String.format("%d,%d", this.categoryID, this.elementID);
+      return String.format("%s,%s", this.categoryID, this.elementID);
    }
 }
 
 class Question {
-   private long id;
+   private UUID id;
    private String text;
    private String answer;
    
-   public Question(long id, String text, String answer) {
+   public Question(UUID id, String text, String answer) {
       this.id = id;
       this.text = text;
       this.answer = answer;
    }
+   public Question(String text, String answer) {
+      this(UUID.randomUUID(), text, answer);
+   }
    
-   public long getID() {
+   public UUID getID() {
       return this.id;
    }
    public String getText() {
@@ -148,10 +161,10 @@ class Question {
    public static Question deserialize(String text) {
       String parts[] = text.split(",");
       // TODO validate input
-      return new Question(Integer.parseInt(parts[0]), parts[1], parts[2]);
+      return new Question(UUID.fromString(parts[0]), parts[1], parts[2]);
    }
    public String serialize() {
-      return String.format("%d,%s,%s", this.id, this.text, this.answer);
+      return String.format("%s,%s,%s", this.id, this.text, this.answer);
    }
 }
 
@@ -169,21 +182,19 @@ public class Axiom {
       Question questions[] = db.select(new Question[0])
                                .toArray(Question[]::new);
       for (Question question : questions) {
-         System.out.println(String.format("%d:%s",
+         System.out.println(String.format("%s:%s",
             question.getID(), question.getText()));
       }
    }
-   public long create(String text, String answer) {
-      return db.insert(new Question(0, text, answer))
-               .getID();
+   public UUID create(String text, String answer) {
+      return db.insert(new Question(text, answer)).getID();
    }
-   public void categorize(long questionID, String categoryNames[]) {
-      Stream<Category> categories = db.select(new Category[0]);
+   public void categorize(UUID questionID, String categoryNames[]) {
       for (String categoryName : categoryNames) {
-         long categoryID = categories
+         UUID categoryID = db.select(new Category[0])
              .filter(category -> category.getName() == categoryName)
              .findFirst()
-             .orElse(db.insert(new Category(0, categoryName)))
+             .orElse(db.insert(new Category(categoryName)))
              .getID();
          db.insert(new Categorize(categoryID, questionID));
       }
@@ -201,11 +212,17 @@ public class Axiom {
                System.err.println("Invalid number of arguments.");
                return;
             }
-            long questionID = program.create(args[1], args[2]);
+            UUID questionID = program.create(args[1], args[2]);
             program.categorize(questionID, Arrays.copyOfRange(args, 3, args.length));
             break;
          }
          case "assign":
+            if (args.length < 2) {
+               System.err.println("Invalid number of arguments.");
+               return;
+            }
+            UUID questionID = UUID.fromString(args[1]);
+            program.categorize(questionID, Arrays.copyOfRange(args, 2, args.length));
             break;
          case "help":
             System.err.println(String.format(
