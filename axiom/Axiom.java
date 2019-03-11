@@ -56,22 +56,25 @@ class FlatDB {
       }
       Files.write(Paths.get(filename), lines, StandardCharsets.UTF_8);
    }
-   
-   public List<Object> select(Class type) {
-      List<Object> result = new ArrayList<Object>();
+   // Due to type erasure we require a dummy variable (a la toArray). Usage is
+   // then select(new Type[0]). This is a tradeoff between DRY and the inherent
+   // problems with generics in Java.
+   public <T> Stream<T> select(T type[]) {
+      Stream.Builder<T> result = Stream.builder();
       for (Object entity : entities) {
-         if (entity.getClass() == type)
-            result.add(entity);
+         if (entity.getClass() == type.getClass().getComponentType())
+            result.add((T)entity);
       }
-      return result;
+      return result.build();
    }
-   public <T extends IFlatTable> void insert(T entity) {
+   public <T> T insert(T entity) {
       entities.add(entity);
+      return entity;
    }
 }
 
 
-class Category implements IFlatTable {
+class Category {
    private long id;
    private String name;
    
@@ -95,7 +98,34 @@ class Category implements IFlatTable {
    }
 }
 
-class Question implements IFlatTable {
+class Categorize {
+   private long categoryID;
+   private long elementID;
+   
+   public Categorize(long categoryID, long elementID) {
+      this.categoryID = categoryID;
+      this.elementID = elementID;
+   }
+   
+   public long getCategoryID() {
+      return this.categoryID;
+   }
+   public long getElementID() {
+      return this.elementID;
+   }
+   
+   public static Categorize deserialize(String text) {
+      String parts[] = text.split(",");
+      // TODO validate input
+      return new Categorize(Integer.parseInt(parts[0]),
+         Integer.parseInt(parts[1]));
+   }
+   public String serialize() {
+      return String.format("%d,%d", this.categoryID, this.elementID);
+   }
+}
+
+class Question {
    private long id;
    private String text;
    private String answer;
@@ -126,43 +156,70 @@ class Question implements IFlatTable {
 }
 
 public class Axiom {
+   private FlatDB db;
+   
+   public Axiom() throws Exception {
+      this.db = new FlatDB("axiom-db.xml");  
+   }
+   public void save() throws Exception {
+      this.db.save();
+   }
+
+   public void list() {
+      Question questions[] = db.select(new Question[0])
+                               .toArray(Question[]::new);
+      for (Question question : questions) {
+         System.out.println(String.format("%d:%s",
+            question.getID(), question.getText()));
+      }
+   }
+   public long create(String text, String answer) {
+      return db.insert(new Question(0, text, answer))
+               .getID();
+   }
+   public void categorize(long questionID, String categoryNames[]) {
+      Stream<Category> categories = db.select(new Category[0]);
+      for (String categoryName : categoryNames) {
+         long categoryID = categories
+             .filter(category -> category.getName() == categoryName)
+             .findFirst()
+             .orElse(db.insert(new Category(0, categoryName)))
+             .getID();
+         db.insert(new Categorize(categoryID, questionID));
+      }
+   }
 	public static void main(String []args) throws Exception {
-      FlatDB db = new FlatDB("axiom-db.xml");
+      Axiom program = new Axiom();
+      
       String command = (args.length > 0)? args[0] : "help";
       switch (command) {
          case "list":
-            for (Object row : db.select(Question.class)) {
-               Question question = (Question)row;
-               System.out.println(String.format("%d:%s",
-                  question.getID(), question.getText()));
-            }
+            program.list();
             break;
-         case "create":
-            if (args.length != 3) {
-               System.err.println("Invalid number of arguments.");
-               return;
-            }
-            db.insert(new Question(0, args[1], args[2]));
-            break;
-         case "assign":
+         case "create": {
             if (args.length < 3) {
                System.err.println("Invalid number of arguments.");
                return;
             }
+            long questionID = program.create(args[1], args[2]);
+            program.categorize(questionID, Arrays.copyOfRange(args, 3, args.length));
+            break;
+         }
+         case "assign":
             break;
          case "help":
-            System.err.println(
+            System.err.println(String.format(
                "Usage: java -jar Axiom [COMMAND ...]"
-               + "\nCommands:"
-               + "\n  create QUESTION ANSWER"
-               + "\n  assign ITEM CATEGORY1 [CATEGORY2 ...]"
-               + "\n  list"
-               + "\n  help");
+             + "%nCommands:"
+             + "%n  create QUESTION ANSWER [CATEGORY1 ...]"
+             + "%n  assign ITEM CATEGORY1 [CATEGORY2 ...]"
+             + "%n  list"
+             + "%n  help"));
             break;
          default:
             System.err.println("Invalid command.");
             return;
       }
-      db.save();
+      program.save();
 	}
 }
