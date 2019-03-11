@@ -5,20 +5,15 @@ import java.util.stream.*;
 import java.io.*;
 import java.nio.file.*;
 import java.lang.reflect.*;
+import java.nio.charset.*;
 
-
-interface IFlatTable {
-   // Get the name of the corresponding table in the database. Defaults to the
-   // name of the subclass itself (this is a new feature in java 8).
-   default String getTableName() {
-      return this.getClass().getName();
-   }
-}
 
 class FlatDB {
+   String filename;
    private List<Object> entities;
    
    public FlatDB(String filename) throws Exception {
+      this.filename = filename;
       this.entities = new ArrayList<Object>();
    
       String lines[] = Files.lines(Paths.get(filename)).toArray(String[]::new);
@@ -26,27 +21,52 @@ class FlatDB {
          String parts[] = line.split(":");
          Class tableClass = Class.forName(parts[0]);
          if (tableClass == null) {
-            System.err.println(String.format("Warning: Cannot find class '%s'. Ignoring entry.", parts[0]));
+            System.err.println(String.format(
+               "Warning: Cannot find class '%s'. Ignoring entry.",
+               parts[0]));
             continue;
          }
          Method deserializeMethod = tableClass.getDeclaredMethod("deserialize", String.class);
          if (deserializeMethod == null) {
-            System.err.println(String.format("Warning: Cannot find class '%s'. Ignoring entry.", parts[0]));
+            System.err.println(String.format(
+               "Warning: Cannot find deserialize method for class '%s'. Ignoring entry.",
+               parts[0]));
             continue;
          }
          this.entities.add(deserializeMethod.invoke(tableClass, parts[1]));
       }
    }
    
-   public void save() {
+   public void save() throws Exception {
+      save(this.filename);
+   }
+   public void save(String filename) throws Exception {
+      List<String> lines = new ArrayList<String>();
+      for (Object entity : entities) {
+         Class tableClass = entity.getClass();
+         Method serializeMethod = tableClass.getDeclaredMethod("serialize");
+         if (serializeMethod == null) {
+            System.err.println(String.format(
+               "Warning: No serialize method for class '%s'. Ignoring instance.",
+               tableClass.getName()));
+            continue;
+         }
+         String text = (String)serializeMethod.invoke(entity);
+         lines.add(String.format("%s:%s", tableClass.getName(), text));
+      }
+      Files.write(Paths.get(filename), lines, StandardCharsets.UTF_8);
    }
    
-   // Wierd quirk in the syntax: Even though this generic says extends, it can
-   // be an interface as well.
-   public <T extends IFlatTable> List<T> select() {
-      return null;
+   public List<Object> select(Class type) {
+      List<Object> result = new ArrayList<Object>();
+      for (Object entity : entities) {
+         if (entity.getClass() == type)
+            result.add(entity);
+      }
+      return result;
    }
-   public <T extends IFlatTable> void insert(T object) {
+   public <T extends IFlatTable> void insert(T entity) {
+      entities.add(entity);
    }
 }
 
@@ -65,6 +85,9 @@ class Category implements IFlatTable {
       String parts[] = text.split(",");
       // TODO validate input
       return new Category(Integer.parseInt(parts[0]), parts[1]);
+   }
+   public String serialize() {
+      return String.format("%d,%s", this.id, this.name);
    }
 }
 
@@ -90,6 +113,9 @@ class Question implements IFlatTable {
       // TODO validate input
       return new Question(Integer.parseInt(parts[0]), parts[1], parts[2]);
    }
+   public String serialize() {
+      return String.format("%d,%s,%s", this.id, this.text, this.answer);
+   }
 }
 
 public class Axiom {
@@ -97,8 +123,8 @@ public class Axiom {
       FlatDB db = new FlatDB("axiom-db.xml");
       
       if (args.length == 0) {
-         //for (Question q : db.<Question>select())
-         //   System.out.println(String.format("%s", q.getText()));
+         for (Object q : db.select(Question.class))
+            System.out.println(String.format("%s", ((Question)q).getText()));
          return;
       }
       switch (args[0]) {
