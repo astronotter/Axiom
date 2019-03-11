@@ -1,4 +1,1 @@
 Main-Class: axiom.Axiom
-Class-Path: 
- lib/openjpa-all-3.0.0.jar 
- lib/derby-10.12.1.1.jar 
