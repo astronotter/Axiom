@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.paint.*?>
+
+<AnchorPane id="AnchorPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="480.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2">
+  <children>
+    <Label layoutX="14.0" layoutY="14.0" prefHeight="36.0" prefWidth="114.0" text="Time:" />
+    <Label layoutX="14.0" layoutY="116.0" prefHeight="36.0" prefWidth="114.0" text="Percentage:" />
+    <Label layoutX="14.0" layoutY="63.0" prefHeight="36.0" prefWidth="114.0" text="Success:" />
+    <Button layoutX="7.0" layoutY="250.0" mnemonicParsing="false" prefHeight="40.0" prefWidth="150.0" text="Again" />
+    <Button layoutX="165.0" layoutY="250.0" mnemonicParsing="false" prefHeight="40.0" prefWidth="150.0" text="Home" />
+    <Button layoutX="323.0" layoutY="250.0" mnemonicParsing="false" prefHeight="40.0" prefWidth="150.0" text="Button" />
+  </children>
+</AnchorPane>

@@ -1,4 +1,4 @@
-package axiom;
+package sample;
 
 import java.util.*;
 import java.util.stream.*;
