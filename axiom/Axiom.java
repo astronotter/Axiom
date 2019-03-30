@@ -1,83 +1,34 @@
 package axiom;
 
 import java.util.*;
+import javafx.collections.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.*;
 import javafx.application.Application;
 
-class QuizStage extends Stage {
-    public QuizStage() {
-        FlowPane pane = new FlowPane();
-        Scene scene = new Scene(pane, 500, 400);
-        
-        TextArea answerField = new TextArea();        
-        pane.getChildren().addAll(answerField);
-        
-        this.setScene(scene);
-        this.setTitle("Quiz");
-    }
-}
-
-class AddEditStage extends Stage {
-    public AddEditStage() {
-        FlowPane pane = new FlowPane();
-        Scene scene = new Scene(pane, 500, 400);
-        
-        TextArea answerField = new TextArea();        
-        pane.getChildren().addAll(answerField);
-        
-        this.setScene(scene);
-        this.setTitle("Add/Edit Question");
-    }
-}
-
-class AxiomStage extends Stage {
-    AddEditStage addEditStage = new AddEditStage();
-    QuizStage quizStage = new QuizStage();
-    
-    public AxiomStage() {
-        FlowPane pane = new FlowPane();
-        Scene scene = new Scene(pane, 500, 400);
-        
-        MenuBar menuBar = new MenuBar();
-        Menu fileMenu = new Menu("File");
-        fileMenu.getItems().add(new MenuItem("Open"));
-        fileMenu.getItems().add(new MenuItem("Save"));
-        Menu helpMenu = new Menu("Help");
-        helpMenu.getItems().add(new MenuItem("About"));
-        menuBar.getMenus().addAll(fileMenu, helpMenu);
-        menuBar.prefWidthProperty().bind(this.widthProperty());
-        
-        ToolBar toolBar = new ToolBar();
-        TextField filterField = new TextField();
-        filterField.setPromptText("Question Filters");
-        toolBar.prefWidthProperty().bind(this.widthProperty());
-        Button addButton = new Button("+");
-        addButton.setOnAction(ev -> addEditStage.show());
-        Button quizButton = new Button("Quiz");
-        toolBar.getItems().addAll(filterField, addButton, quizButton);
-        
-        pane.getChildren().addAll(menuBar, toolBar);
-        
-        this.setTitle("Axiom");
-        this.setScene(scene);
-    }
-}
-
-public class Axiom extends Application {
+public class Axiom {
+    private static Axiom instance;
     private FlatDB db;
-    private AxiomStage stage;
+    private AxiomGUI gui;
 
-    public Axiom() throws Exception {
+    private Axiom() throws Exception {
         this.db = new FlatDB("axiom-db.xml");
     }
-    
-    @Override
-    public void start(Stage stage) throws Exception {
-        this.stage = new AxiomStage();
-        this.stage.show();
+    public static Axiom getInstance() {
+        if (instance == null) {
+            try {
+                instance = new Axiom();
+            }
+            catch (Exception e) {
+                return null;
+            }
+        }
+        return instance;
+    }
+    public FlatDB getDB() {
+        return this.db;
     }
     
     public void save() throws Exception {
@@ -88,7 +39,7 @@ public class Axiom extends Application {
                                .toArray(Question[]::new);
         for (Question question : questions) {
             System.out.println(String.format("%s:%s",
-            question.getID(), question.getText()));
+                question.getID(), question.getText()));
         }
     }
     public UUID create(String text, String answer) {
@@ -105,12 +56,12 @@ public class Axiom extends Application {
         }
     }
     public static void main(String []args) throws Exception {
-        Axiom program = new Axiom();
+        Axiom program = getInstance();
 
-        if (args.length == 0) {
-            program.launch();
-            return;
-        }
+        // If the program is called without arguments then the GUI is launched.
+        if (args.length == 0)
+            Application.launch(AxiomGUI.class);
+        else
         switch (args[0]) {
             case "list":
                 program.list();
