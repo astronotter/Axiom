@@ -56,6 +56,7 @@ class AxiomStage extends Stage {
         
         ListView<String> questionList = new ListView<String>();
         questionList.prefWidthProperty().bind(this.widthProperty());
+        questionList.prefHeightProperty().bind(this.heightProperty());
         
         ToolBar toolBar = new ToolBar();
         TextField filterField = new TextField();

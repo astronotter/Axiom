@@ -17,14 +17,6 @@ public class Axiom {
         this.db = new FlatDB("axiom-db.xml");
     }
     public static Axiom getInstance() {
-        if (instance == null) {
-            try {
-                instance = new Axiom();
-            }
-            catch (Exception e) {
-                return null;
-            }
-        }
         return instance;
     }
     public FlatDB getDB() {
@@ -56,7 +48,7 @@ public class Axiom {
         }
     }
     public static void main(String []args) throws Exception {
-        Axiom program = getInstance();
+        instance = new Axiom();
 
         // If the program is called without arguments then the GUI is launched.
         if (args.length == 0)
@@ -64,15 +56,15 @@ public class Axiom {
         else
         switch (args[0]) {
             case "list":
-                program.list();
+                instance.list();
                 break;
             case "create": {
                 if (args.length < 3) {
                    System.err.println("Invalid number of arguments.");
                    return;
                 }
-                UUID questionID = program.create(args[1], args[2]);
-                program.categorize(questionID, Arrays.copyOfRange(args, 3, args.length));
+                UUID questionID = instance.create(args[1], args[2]);
+                instance.categorize(questionID, Arrays.copyOfRange(args, 3, args.length));
                 break;
             }
             case "assign":
@@ -81,7 +73,7 @@ public class Axiom {
                    return;
                 }
                 UUID questionID = UUID.fromString(args[1]);
-                program.categorize(questionID, Arrays.copyOfRange(args, 2, args.length));
+                instance.categorize(questionID, Arrays.copyOfRange(args, 2, args.length));
                 break;
             case "help":
                 System.err.println(String.format(
@@ -96,6 +88,6 @@ public class Axiom {
                 System.err.println("Invalid command.");
                 return;
         }
-        program.save();
+        instance.save();
     }
 }
