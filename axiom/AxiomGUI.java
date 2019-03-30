@@ -4,12 +4,14 @@ import java.util.*;
 import javafx.collections.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
+import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import javafx.stage.*;
+import javafx.event.*;
 import javafx.application.Application;
 
 class QuizStage extends Stage {
-    public QuizStage() {
+    public QuizStage(List<Question> questions) {
         FlowPane pane = new FlowPane();
         Scene scene = new Scene(pane, 500, 400);
         
@@ -22,11 +24,11 @@ class QuizStage extends Stage {
 }
 
 class AddEditStage extends Stage {    
-    public AddEditStage() {
+    public AddEditStage(Question question) {
         FlowPane pane = new FlowPane();
         Scene scene = new Scene(pane, 500, 400);
         
-        TextArea answerField = new TextArea();        
+        TextArea answerField = new TextArea((question == null)? "" : question.toString());
         pane.getChildren().addAll(answerField);
         
         this.setScene(scene);
@@ -35,13 +37,7 @@ class AddEditStage extends Stage {
 }
 
 class AxiomStage extends Stage {
-    AddEditStage addEditStage;
-    QuizStage quizStage;
-    
     public AxiomStage() {
-        this.addEditStage = new AddEditStage();
-        this.quizStage = new QuizStage();
-        
         FlowPane pane = new FlowPane();
         Scene scene = new Scene(pane, 500, 400);
         
@@ -54,9 +50,23 @@ class AxiomStage extends Stage {
         menuBar.getMenus().addAll(fileMenu, helpMenu);
         menuBar.prefWidthProperty().bind(this.widthProperty());
         
-        ListView<String> questionList = new ListView<String>();
+        ListView<Question> questionList = new ListView<Question>();
         questionList.prefWidthProperty().bind(this.widthProperty());
         questionList.prefHeightProperty().bind(this.heightProperty());
+        questionList.setCellFactory(view -> new ListCell<Question>() {  // [so 36657299]
+            @Override
+            protected void updateItem(Question question, boolean empty) {
+                super.updateItem(question, empty);
+                setText((!empty && question != null)? question.toString() : null);
+            }
+        });
+        questionList.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent ev) {
+                if (ev.getClickCount() == 2)
+                    edit(questionList.getSelectionModel().getSelectedItems().get(0));
+            }
+        });
         
         ToolBar toolBar = new ToolBar();
         TextField filterField = new TextField();
@@ -66,8 +76,9 @@ class AxiomStage extends Stage {
                            filterField.getCharacters().toString()));
         toolBar.prefWidthProperty().bind(this.widthProperty());
         Button addButton = new Button("+");
-        addButton.setOnAction(ev -> addEditStage.show());
+        addButton.setOnAction(ev -> add());
         Button quizButton = new Button("Quiz");
+        quizButton.setOnAction(ev -> quiz());
         toolBar.getItems().addAll(filterField, addButton, quizButton);
         
         pane.getChildren().addAll(menuBar, toolBar, questionList);
@@ -79,13 +90,24 @@ class AxiomStage extends Stage {
         refilter(questionList.getItems(), filterField.getCharacters().toString());
     }
     // Filter text has changed, we need to update the question list accordingly
-    void refilter(ObservableList<String> list, String filter) {
-        Question questions[] = Axiom.getInstance()
-                                    .getDB()
-                                    .select(new Question[0])
-                                    .toArray(Question[]::new);
-        for (Question question : questions)
-            list.add(question.getText());
+    void refilter(ObservableList<Question> list, String filter) {
+        list.setAll(Axiom.getInstance()
+                         .getDB()
+                         .select(new Question[0])
+                         .toArray(Question[]::new));
+    }
+    void edit(Question question) {
+        AddEditStage addEditStage = new AddEditStage(question);
+        addEditStage.showAndWait();
+    }
+    void add() {
+        AddEditStage addEditStage = new AddEditStage(null);
+        addEditStage.showAndWait();
+        // refilter();
+    }
+    void quiz() {
+        QuizStage quizStage = new QuizStage(null);
+        quizStage.showAndWait();
     }
 }
 

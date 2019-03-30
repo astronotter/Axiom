@@ -34,4 +34,7 @@ class Question {
     public String serialize() {
         return String.format("%s,%s,%s", this.id, this.text, this.answer);
     }
+    public String toString() {
+        return this.text;
+    }
 }
