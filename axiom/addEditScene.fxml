@@ -6,7 +6,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.paint.*?>
 
-<AnchorPane id="AnchorPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="480.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="sample.addEditSceneController">
+<AnchorPane id="AnchorPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="480.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="axiom.AddEditSceneController">
   <children>
     <Button fx:id="okButton" layoutX="12.0" layoutY="347.0" mnemonicParsing="false" onAction="#ok" prefHeight="39.0" prefWidth="108.0" text="OK" />
     <Button id="cancelButton" fx:id="backButton" layoutX="133.0" layoutY="347.0" mnemonicParsing="false" onAction="#back" prefHeight="39.0" prefWidth="108.0" text="Back" />
