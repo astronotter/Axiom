@@ -78,7 +78,7 @@ class AxiomStage extends Stage {
         String filter = filterField.getText();
         List<Question> questions = Axiom.getInstance().getDB()
           .select(new Question[0])
-          .filter(question -> CategorizeFilter.passes(filter, question))
+          .filter(question -> CategoryFilter.passes(filter, question))
           .collect(Collectors.toList());
         
         // If the list is empty, grey out the quiz button.
