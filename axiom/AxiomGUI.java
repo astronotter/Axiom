@@ -75,10 +75,10 @@ class AxiomStage extends Stage {
     }
     // Filter text has changed, we need to update the question list accordingly.
     void refilter() {
-        CategorizeFilter cf = new CategorizeFilter(filterField.getText());
+        String filter = filterField.getText();
         List<Question> questions = Axiom.getInstance().getDB()
           .select(new Question[0])
-          .filter(question -> cf.passes(question))
+          .filter(question -> CategorizeFilter.passes(filter, question))
           .collect(Collectors.toList());
         
         // If the list is empty, grey out the quiz button.
