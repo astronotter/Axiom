@@ -45,7 +45,6 @@ class AxiomStage extends Stage {
                     edit(questionList.getSelectionModel()
                                      .getSelectedItems()
                                      .get(0));
-                    refilter();
                 }
             }
         });
@@ -56,7 +55,7 @@ class AxiomStage extends Stage {
         filterField.setOnKeyTyped(ev -> refilter());
         toolBar.prefWidthProperty().bind(this.widthProperty());
         Button addButton = new Button("+");
-        addButton.setOnAction(ev -> { add(); refilter(); });
+        addButton.setOnAction(ev -> { edit(null); refilter(); });
         Button quizButton = new Button("Quiz");
         quizButton.setOnAction(ev -> { quiz(); refilter(); });
         toolBar.getItems().addAll(filterField, addButton, quizButton);
@@ -83,27 +82,36 @@ class AxiomStage extends Stage {
         questionList.setItems(questions);
     }
     void edit(Question question) {
-        TextArea textArea = new TextArea(question.getText());
-        TextArea answerArea = new TextArea(question.getAnswer());
+        Stage stage = new Stage();
+        stage.initModality(Modality.WINDOW_MODAL);
+        
+        TextArea textArea = new TextArea(question == null? "" : question.getText());
+        TextArea answerArea = new TextArea(question == null? "" : question.getAnswer());
         TextField tagField = new TextField();
         
-        VBox vbox = new VBox(textArea, answerArea, tagField);
+        Button okButton = new Button("OK");
+        okButton.setOnAction(ev -> {
+            Question q = question;
+            if (q == null) {
+                q = new Question();
+                Axiom.getInstance().getDB().insert(q);
+            }
+            q.setText(textArea.getText());
+            q.setAnswer(answerArea.getText());
+            stage.close();
+            refilter();
+        });
+        Button cancelButton = new Button("Cancel");
+        cancelButton.setOnAction(ev -> stage.close());
+        
+        VBox vbox = new VBox(textArea, answerArea, tagField,
+            new HBox(okButton, cancelButton));
         vbox.setAlignment(Pos.CENTER);
         vbox.setPadding(new Insets(5, 5, 5, 5));
         
-        Stage stage = new Stage();
-        stage.initModality(Modality.WINDOW_MODAL);
         stage.setScene(new Scene(vbox));
         stage.setTitle("Add/Edit Question");
         stage.showAndWait();
-        
-        question.setText(textArea.getText());
-        question.setAnswer(answerArea.getText());
-    }
-    void add() {
-        Question question = new Question("", "");
-        edit(question);
-        Axiom.getInstance().getDB().insert(question);
     }
     void quiz() {
         QuizStage quizStage = new QuizStage(null);
