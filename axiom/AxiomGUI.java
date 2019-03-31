@@ -1,6 +1,7 @@
 package axiom;
 
 import java.util.*;
+import java.util.stream.*;
 import javafx.collections.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
@@ -14,6 +15,7 @@ import javafx.application.Application;
 class AxiomStage extends Stage {
     private ListView<Question> questionList;
     private TextField filterField;
+    private Button quizButton;
     private ListIterator<Question> quiz;
     Question currentQuestion;
     
@@ -37,7 +39,8 @@ class AxiomStage extends Stage {
             @Override
             protected void updateItem(Question question, boolean empty) {
                 super.updateItem(question, empty);
-                setText((!empty && question != null)? question.toString() : null);
+                setText((!empty && question != null)?
+                    question.toString() : null);
             }
         });
         questionList.setOnMouseClicked(new EventHandler<MouseEvent>() {
@@ -53,12 +56,12 @@ class AxiomStage extends Stage {
         
         ToolBar toolBar = new ToolBar();
         filterField = new TextField();
-        filterField.setPromptText("Question Filters");
-        filterField.setOnKeyTyped(ev -> refilter());
+        filterField.setPromptText("Filter");
+        filterField.textProperty().addListener(ev -> refilter());
         toolBar.prefWidthProperty().bind(this.widthProperty());
         Button addButton = new Button("+");
         addButton.setOnAction(ev -> { edit(null); refilter(); });
-        Button quizButton = new Button("Quiz");
+        quizButton = new Button("Quiz");
         quizButton.setOnAction(ev -> { quiz(); refilter(); });
         toolBar.getItems().addAll(filterField, addButton, quizButton);
         
@@ -72,15 +75,18 @@ class AxiomStage extends Stage {
     }
     // Filter text has changed, we need to update the question list accordingly.
     void refilter() {
-        ObservableList<Question> questions = FXCollections.observableArrayList(
-            Axiom.getInstance()
-                 .getDB()
-                 .select(new Question[0])
-                 .toArray(Question[]::new));
+        CategorizeFilter cf = new CategorizeFilter(filterField.getText());
+        List<Question> questions = Axiom.getInstance().getDB()
+          .select(new Question[0])
+          .filter(question -> cf.passes(question))
+          .collect(Collectors.toList());
+        
+        // If the list is empty, grey out the quiz button.
+        quizButton.disableProperty().set(questions.isEmpty());
         
         // Set to an empty list and then back, this forces a refresh.
         questionList.setItems(FXCollections.observableArrayList());
-        questionList.setItems(questions);
+        questionList.setItems(FXCollections.observableArrayList(questions));
     }
     void edit(Question question) {
         Stage stage = new Stage();
@@ -130,9 +136,12 @@ class AxiomStage extends Stage {
             answerLabel.setText(currentQuestion.getAnswer()));
         Button nextButton = new Button("Next");
         nextButton.setOnAction(ev -> {
+            // Setup the next question, and hide the answer.
             currentQuestion = quiz.next();
             textLabel.setText(currentQuestion.getText());
             answerLabel.setText("");
+            
+            // If we run out of questions then grey out the next button.
             if (!quiz.hasNext())
                 nextButton.disableProperty().set(true);
         });

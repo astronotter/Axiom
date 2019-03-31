@@ -28,7 +28,7 @@ public class Axiom {
     }
     public void list() {
         Question questions[] = db.select(new Question[0])
-                               .toArray(Question[]::new);
+                                 .toArray(Question[]::new);
         for (Question question : questions) {
             System.out.println(String.format("%s:%s",
                 question.getID(), question.getText()));
@@ -40,10 +40,10 @@ public class Axiom {
     public void categorize(UUID questionID, String categoryNames[]) {
         for (String categoryName : categoryNames) {
             UUID categoryID = db.select(new Category[0])
-                 .filter(category -> category.getName() == categoryName)
-                 .findFirst()
-                 .orElse(db.insert(new Category(categoryName)))
-                 .getID();
+                                .filter(category -> category.getName() == categoryName)
+                                .findFirst()
+                                .orElse(db.insert(new Category(categoryName)))
+                                .getID();
             db.insert(new Categorize(categoryID, questionID));
         }
     }
