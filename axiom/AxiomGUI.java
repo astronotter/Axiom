@@ -14,6 +14,8 @@ import javafx.application.Application;
 class AxiomStage extends Stage {
     private ListView<Question> questionList;
     private TextField filterField;
+    private ListIterator<Question> quiz;
+    Question currentQuestion;
     
     public AxiomStage() {
         FlowPane pane = new FlowPane();
@@ -70,7 +72,6 @@ class AxiomStage extends Stage {
     }
     // Filter text has changed, we need to update the question list accordingly.
     void refilter() {
-        System.out.println("refilter");
         ObservableList<Question> questions = FXCollections.observableArrayList(
             Axiom.getInstance()
                  .getDB()
@@ -113,9 +114,39 @@ class AxiomStage extends Stage {
         stage.setTitle("Add/Edit Question");
         stage.showAndWait();
     }
+    
     void quiz() {
-        QuizStage quizStage = new QuizStage(null);
-        quizStage.showAndWait();
+        Stage stage = new Stage();
+        stage.initModality(Modality.WINDOW_MODAL);
+        
+        quiz = questionList.getItems().listIterator();
+        currentQuestion = quiz.next();
+        
+        Label textLabel = new Label(currentQuestion.getText());
+        Label answerLabel = new Label();
+        
+        Button answerButton = new Button("Answer");
+        answerButton.setOnAction(ev ->
+            answerLabel.setText(currentQuestion.getAnswer()));
+        Button nextButton = new Button("Next");
+        nextButton.setOnAction(ev -> {
+            currentQuestion = quiz.next();
+            textLabel.setText(currentQuestion.getText());
+            answerLabel.setText("");
+            if (!quiz.hasNext())
+                nextButton.disableProperty().set(true);
+        });
+        Button finishButton = new Button("Finish");
+        finishButton.setOnAction(ev -> stage.close());
+        
+        VBox vbox = new VBox(textLabel, answerLabel,
+            new HBox(answerButton, nextButton, finishButton));
+        vbox.setAlignment(Pos.CENTER);
+        vbox.setPadding(new Insets(5, 5, 5, 5));
+        
+        stage.setScene(new Scene(vbox));
+        stage.setTitle("Quiz");
+        stage.showAndWait();
     }
 }
 
