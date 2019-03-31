@@ -8,35 +8,13 @@ import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import javafx.stage.*;
 import javafx.event.*;
+import javafx.geometry.*;
 import javafx.application.Application;
 
-class QuizStage extends Stage {
-    public QuizStage(List<Question> questions) {
-        FlowPane pane = new FlowPane();
-        Scene scene = new Scene(pane, 500, 400);
-        
-        TextArea answerField = new TextArea();        
-        pane.getChildren().addAll(answerField);
-        
-        this.setScene(scene);
-        this.setTitle("Quiz");
-    }
-}
-
-class AddEditStage extends Stage {    
-    public AddEditStage(Question question) {
-        FlowPane pane = new FlowPane();
-        Scene scene = new Scene(pane, 500, 400);
-        
-        TextArea answerField = new TextArea((question == null)? "" : question.toString());
-        pane.getChildren().addAll(answerField);
-        
-        this.setScene(scene);
-        this.setTitle("Add/Edit Question");
-    }
-}
-
 class AxiomStage extends Stage {
+    private ListView<Question> questionList;
+    private TextField filterField;
+    
     public AxiomStage() {
         FlowPane pane = new FlowPane();
         Scene scene = new Scene(pane, 500, 400);
@@ -50,7 +28,7 @@ class AxiomStage extends Stage {
         menuBar.getMenus().addAll(fileMenu, helpMenu);
         menuBar.prefWidthProperty().bind(this.widthProperty());
         
-        ListView<Question> questionList = new ListView<Question>();
+        questionList = new ListView<Question>();
         questionList.prefWidthProperty().bind(this.widthProperty());
         questionList.prefHeightProperty().bind(this.heightProperty());
         questionList.setCellFactory(view -> new ListCell<Question>() {  // [so 36657299]
@@ -63,22 +41,24 @@ class AxiomStage extends Stage {
         questionList.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent ev) {
-                if (ev.getClickCount() == 2)
-                    edit(questionList.getSelectionModel().getSelectedItems().get(0));
+                if (ev.getClickCount() == 2) {
+                    edit(questionList.getSelectionModel()
+                                     .getSelectedItems()
+                                     .get(0));
+                    refilter();
+                }
             }
         });
         
         ToolBar toolBar = new ToolBar();
-        TextField filterField = new TextField();
+        filterField = new TextField();
         filterField.setPromptText("Question Filters");
-        filterField.setOnKeyTyped(
-            ev -> refilter(questionList.getItems(),
-                           filterField.getCharacters().toString()));
+        filterField.setOnKeyTyped(ev -> refilter());
         toolBar.prefWidthProperty().bind(this.widthProperty());
         Button addButton = new Button("+");
-        addButton.setOnAction(ev -> add());
+        addButton.setOnAction(ev -> { add(); refilter(); });
         Button quizButton = new Button("Quiz");
-        quizButton.setOnAction(ev -> quiz());
+        quizButton.setOnAction(ev -> { quiz(); refilter(); });
         toolBar.getItems().addAll(filterField, addButton, quizButton);
         
         pane.getChildren().addAll(menuBar, toolBar, questionList);
@@ -87,23 +67,39 @@ class AxiomStage extends Stage {
         this.setScene(scene);
         
         // Populate the list with no filter
-        refilter(questionList.getItems(), filterField.getCharacters().toString());
+        refilter();
     }
     // Filter text has changed, we need to update the question list accordingly
-    void refilter(ObservableList<Question> list, String filter) {
-        list.setAll(Axiom.getInstance()
-                         .getDB()
-                         .select(new Question[0])
-                         .toArray(Question[]::new));
+    void refilter() {
+        ObservableList<Question> questions = FXCollections.observableArrayList(
+            Axiom.getInstance()
+                 .getDB()
+                 .select(new Question[0])
+                 .toArray(Question[]::new));
+        questionList.setItems(questions);
     }
     void edit(Question question) {
-        AddEditStage addEditStage = new AddEditStage(question);
-        addEditStage.showAndWait();
+        TextArea textArea = new TextArea(question.getText());
+        TextArea answerArea = new TextArea(question.getAnswer());
+        TextField tagField = new TextField();
+        
+        VBox vbox = new VBox(textArea, answerArea, tagField);
+        vbox.setAlignment(Pos.CENTER);
+        vbox.setPadding(new Insets(5, 5, 5, 5));
+        
+        Stage stage = new Stage();
+        stage.initModality(Modality.WINDOW_MODAL);
+        stage.setScene(new Scene(vbox));
+        stage.setTitle("Add/Edit Question");
+        stage.showAndWait();
+        
+        question.setText(textArea.getText());
+        question.setAnswer(answerArea.getText());
     }
     void add() {
-        AddEditStage addEditStage = new AddEditStage(null);
-        addEditStage.showAndWait();
-        // refilter();
+        Question question = new Question("", "");
+        edit(question);
+        Axiom.getInstance().getDB().insert(question);
     }
     void quiz() {
         QuizStage quizStage = new QuizStage(null);

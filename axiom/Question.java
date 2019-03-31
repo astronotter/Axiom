@@ -16,6 +16,9 @@ class Question {
     public Question(String text, String answer) {
         this(UUID.randomUUID(), text, answer);
     }
+    public Question() {
+        this("", "");
+    }
 
     public UUID getID() {
         return this.id;
@@ -25,6 +28,12 @@ class Question {
     }
     public String getAnswer() {
         return this.answer;
+    }
+    public void setText(String text) {
+        this.text = text;
+    }
+    public void setAnswer(String answer) {
+        this.answer = answer;
     }
     public static Question deserialize(String text) {
         String parts[] = text.split(",");
