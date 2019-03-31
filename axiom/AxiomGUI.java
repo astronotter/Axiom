@@ -66,16 +66,20 @@ class AxiomStage extends Stage {
         this.setTitle("Axiom");
         this.setScene(scene);
         
-        // Populate the list with no filter
+        // Populate the list with no filter.
         refilter();
     }
-    // Filter text has changed, we need to update the question list accordingly
+    // Filter text has changed, we need to update the question list accordingly.
     void refilter() {
+        System.out.println("refilter");
         ObservableList<Question> questions = FXCollections.observableArrayList(
             Axiom.getInstance()
                  .getDB()
                  .select(new Question[0])
                  .toArray(Question[]::new));
+        
+        // Set to an empty list and then back, this forces a refresh.
+        questionList.setItems(FXCollections.observableArrayList());
         questionList.setItems(questions);
     }
     void edit(Question question) {
