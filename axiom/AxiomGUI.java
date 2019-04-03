@@ -120,7 +120,6 @@ class AxiomStage extends Stage {
         stage.setTitle("Add/Edit Question");
         stage.showAndWait();
     }
-    
     void quiz() {
         Stage stage = new Stage();
         stage.initModality(Modality.WINDOW_MODAL);
