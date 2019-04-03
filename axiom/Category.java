@@ -39,4 +39,8 @@ class Category {
         Category other = (Category)rhs;
         return other.id.equals(id) && other.name.equals(name);
     }
+    @Override
+    public int hashCode() {
+        return id.hashCode() * 31 + name.hashCode();
+    }
 }
