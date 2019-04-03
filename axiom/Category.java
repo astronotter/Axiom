@@ -28,4 +28,15 @@ class Category {
     public String serialize() {
         return String.format("%s,%s", this.id, this.name);
     }
+    @Override
+    public boolean equals(Object rhs) {
+        if (rhs == null)
+            return false;
+        if (rhs == this)
+            return true;
+        if (!(rhs instanceof Category))
+            return false;
+        Category other = (Category)rhs;
+        return other.id.equals(id) && other.name.equals(name);
+    }
 }
