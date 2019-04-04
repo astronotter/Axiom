@@ -27,9 +27,13 @@ class AxiomStage extends Stage {
         Menu fileMenu = new Menu("File");
         fileMenu.getItems().add(new MenuItem("Open"));
         fileMenu.getItems().add(new MenuItem("Save"));
+        Menu editMenu = new Menu("Edit");
+        MenuItem deleteMenuItem = new MenuItem("Delete");
+        deleteMenuItem.setOnAction(ev -> delete());
+        editMenu.getItems().add(deleteMenuItem);
         Menu helpMenu = new Menu("Help");
         helpMenu.getItems().add(new MenuItem("About"));
-        menuBar.getMenus().addAll(fileMenu, helpMenu);
+        menuBar.getMenus().addAll(fileMenu, editMenu, helpMenu);
         menuBar.prefWidthProperty().bind(this.widthProperty());
         
         questionList = new ListView<Question>();
@@ -71,6 +75,13 @@ class AxiomStage extends Stage {
         this.setScene(scene);
         
         // Populate the list with no filter.
+        refilter();
+    }
+    void delete() {
+        Question selected = questionList.getSelectionModel().getSelectedItem();
+        Axiom.getInstance().getDB().remove(selected);
+        
+        // Refresh the list.
         refilter();
     }
     // Filter text has changed, we need to update the question list accordingly.

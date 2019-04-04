@@ -76,4 +76,7 @@ public class FlatDB {
         entities.add(entity);
         return entity;
     }
+    public void remove(Object entity) {
+        entities.remove(entity);
+    }
 }
