@@ -14,7 +14,7 @@ public class Axiom {
     private AxiomGUI gui;
 
     private Axiom() throws Exception {
-        this.db = new FlatDB("axiom-db.xml");
+        this.db = new FlatDB("axiom.db");
     }
     public static Axiom getInstance() {
         return instance;

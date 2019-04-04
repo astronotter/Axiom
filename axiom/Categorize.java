@@ -20,7 +20,6 @@ class Categorize {
 
     public static Categorize deserialize(String text) {
         String parts[] = text.split(",");
-        // TODO validate input
         return new Categorize(UUID.fromString(parts[0]),
                               UUID.fromString(parts[1]));
     }

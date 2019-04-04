@@ -20,14 +20,15 @@ class Category {
     public String getName() {
         return this.name;
     }
+    
     public static Category deserialize(String text) {
         String parts[] = text.split(",");
-        // TODO validate input
         return new Category(UUID.fromString(parts[0]), parts[1]);
     }
     public String serialize() {
         return String.format("%s,%s", this.id, this.name);
     }
+    
     @Override
     public boolean equals(Object rhs) {
         if (rhs == null)

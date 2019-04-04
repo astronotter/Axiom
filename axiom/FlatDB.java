@@ -11,53 +11,59 @@ public class FlatDB {
     String filename;
     private List<Object> entities;
 
-    public FlatDB(String filename) throws Exception {
+    public FlatDB(String filename) {
         this.filename = filename;
         this.entities = new ArrayList<Object>();
 
+        load(filename);
+    }
+    public boolean load(String filename) {
         try {
             String lines[] = Files.lines(Paths.get(filename)).toArray(String[]::new);
             for (String line : lines) {
                 String parts[] = line.split(":");
-                Class tableClass = Class.forName(parts[0]);
-                if (tableClass == null) {
+                try {
+                    Class tableClass = Class.forName(parts[0]);
+                    Method deserializeMethod = tableClass.getDeclaredMethod("deserialize", String.class);
+                    this.entities.add(deserializeMethod.invoke(tableClass, parts[1]));
+                }
+                catch (ClassNotFoundException ex) {
                     System.err.println(String.format(
                         "Warning: Cannot find class '%s'. Ignoring entry.",
                         parts[0]));
-                    continue;
                 }
-                Method deserializeMethod = tableClass.getDeclaredMethod("deserialize", String.class);
-                if (deserializeMethod == null) {
+                catch (Exception ex) {
                     System.err.println(String.format(
-                        "Warning: Cannot find deserialize method for class '%s'. Ignoring entry.",
+                        "Warning: Cannot deserialize method for class '%s'. Ignoring entry.",
                         parts[0]));
-                    continue;
                 }
-                this.entities.add(deserializeMethod.invoke(tableClass, parts[1]));
             }
         }
-        catch (NoSuchFileException notfound) {
+        catch (IOException ex) {
             // Silently ignore, the file not existing is treated the same as an
             // empty db
+            return false;
         }
+        return true;
     }
-
-    public void save() throws Exception {
-      save(this.filename);
+    public void save() throws IOException {
+        save(this.filename);
     }
-    public void save(String filename) throws Exception {
+    public void save(String filename) throws IOException {
         List<String> lines = new ArrayList<String>();
         for (Object entity : entities) {
             Class tableClass = entity.getClass();
-            Method serializeMethod = tableClass.getDeclaredMethod("serialize");
-            if (serializeMethod == null) {
-                System.err.println(String.format(
-                    "Warning: No serialize method for class '%s'. Ignoring instance.",
-                    tableClass.getName()));
-            continue;
+            try {
+                Method serializeMethod = tableClass.getDeclaredMethod("serialize");
+                String text = (String)serializeMethod.invoke(entity);
+                lines.add(String.format("%s:%s", tableClass.getName(), text));
             }
-            String text = (String)serializeMethod.invoke(entity);
-            lines.add(String.format("%s:%s", tableClass.getName(), text));
+            catch (Exception ex) {
+                System.err.println(String.format(
+                    "Warning: Cannot serialize instance of class '%s'. Ignoring instance.",
+                    tableClass.getName()));
+                continue;
+            }
         }
         Files.write(Paths.get(filename), lines, StandardCharsets.UTF_8);
     }
