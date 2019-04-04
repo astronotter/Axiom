@@ -1,6 +1,7 @@
 package axiom;
 
 import java.util.*;
+import java.util.stream.*;
 import javafx.collections.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
@@ -13,8 +14,8 @@ public class Axiom {
     private FlatDB db;
     private AxiomGUI gui;
 
-    private Axiom() throws Exception {
-        this.db = new FlatDB("axiom.db");
+    private Axiom(String dbFileName) throws Exception {
+        this.db = new FlatDB(dbFileName);
     }
     public static Axiom getInstance() {
         return instance;
@@ -26,61 +27,113 @@ public class Axiom {
     public void save() throws Exception {
         this.db.save();
     }
-    public void list() {
-        Question questions[] = db.select(new Question[0])
-                                 .toArray(Question[]::new);
-        for (Question question : questions) {
-            System.out.println(String.format("%s:%s",
-                question.getID(), question.getText()));
+    
+    public List<Question> listQuestions(String filter) {
+        final List<String> categoryNames = Arrays.asList(filter.split(","));
+        return this.db
+            .select(new Question[0])
+            .filter(question -> this.db
+                .select(new Category[0])
+                .filter(category -> categoryNames.contains(category.getName()))
+                .allMatch(category -> this.db
+                    .select(new Categorize[0])
+                    .anyMatch(categorizes ->
+                     (categorizes.getCategoryID().equals(category.getID())
+                     && categorizes.getElementID().equals(question.getID())))))
+            .collect(Collectors.toList());
+    }
+    public Question createQuestion(String text, String answer) {
+        return this.db.insert(new Question(text, answer));
+    }
+    public Question editQuestion(Question question, String text, String answer) {
+        question.setText(text);
+        question.setAnswer(answer);
+        return question;
+    }
+    public void categorizeQuestion(Question question, String categories) {
+        // Strip all categories from question.
+        this.db
+            .select(new Categorize[0])
+            .filter(cat -> cat.getElementID().equals(question.getID()))
+            .forEach(cat -> this.db.remove(cat));
+        
+        // Parse and recategorize question.
+        for (String token : categories.split(",")) {
+            final String categoryName = token.trim();
+            if (categoryName.equals(""))
+                continue;
+            
+            // Find the category by name, or create it if it does not exist
+            Category category = this.db
+                .select(new Category[0])
+                .filter(cat -> cat.getName().equals(categoryName))
+                .findAny()
+                .orElseGet(() -> this.db.insert(new Category(categoryName)));
+            
+            this.db.insert(new Categorize(category.getID(), question.getID()));
         }
     }
-    public UUID create(String text, String answer) {
-      return db.insert(new Question(text, answer)).getID();
+    public List<Category> getCategories(Question question) {
+        List<Category> categories = new ArrayList<Category>();
+        this.db
+            .select(new Categorize[0])
+            .filter(cat -> cat.getElementID().equals(question.getID()))
+            .forEach(cat -> this.db
+                .select(new Category[0])
+                .filter(cat2 -> cat2.getID().equals(cat.getCategoryID()))
+                .forEach(cat2 -> categories.add(cat2)));
+        return categories;
     }
-    public void categorize(UUID questionID, String categoryNames[]) {
-        for (String categoryName : categoryNames) {
-            UUID categoryID = db.select(new Category[0])
-                                .filter(category -> category.getName() == categoryName)
-                                .findFirst()
-                                .orElse(db.insert(new Category(categoryName)))
-                                .getID();
-            db.insert(new Categorize(categoryID, questionID));
-        }
+    public Question getQuestion(UUID id) {
+        return this.db
+            .select(new Question[0])
+            .filter(q -> q.getID().equals(id))
+            .findAny()
+            .orElse(null);
     }
-    public static void main(String []args) throws Exception {
-        instance = new Axiom();
-
-        // If the program is called without arguments then the GUI is launched.
-        if (args.length == 0)
-            Application.launch(AxiomGUI.class);
-        else
+    public void processCLI(String args[]) {
         switch (args[0]) {
-            case "list":
-                instance.list();
+            case "list": {
+                String filter = (args.length > 2)? "" : args[1];
+                for (Question question : listQuestions(filter)) {
+                    System.out.println(String.format("%s:%s",
+                        question.getID(), question.getText()));
+                }
                 break;
+            }
             case "create": {
                 if (args.length < 3) {
                    System.err.println("Invalid number of arguments.");
                    return;
                 }
-                UUID questionID = instance.create(args[1], args[2]);
-                instance.categorize(questionID, Arrays.copyOfRange(args, 3, args.length));
+                Question question = createQuestion(args[1], args[2]);
+                categorizeQuestion(question, args[3]);
                 break;
             }
-            case "assign":
-                if (args.length < 2) {
+            case "edit": {
+                if (args.length < 3) {
                    System.err.println("Invalid number of arguments.");
                    return;
                 }
-                UUID questionID = UUID.fromString(args[1]);
-                instance.categorize(questionID, Arrays.copyOfRange(args, 2, args.length));
+                Question question = getQuestion(UUID.fromString(args[1]));
+                editQuestion(question, args[2], args[3]);
+                break;
+            }
+            case "assign":
+                if (args.length != 2) {
+                   System.err.println("Invalid number of arguments.");
+                   return;
+                }
+                Question question = getQuestion(UUID.fromString(args[1]));
+                categorizeQuestion(question, args[2]);
                 break;
             case "help":
                 System.err.println(String.format(
                    "Usage: java -jar Axiom [COMMAND ...]"
                  + "%nCommands:"
-                 + "%n  create QUESTION ANSWER [CATEGORY1 ...]"
-                 + "%n  assign ITEM CATEGORY1 [CATEGORY2 ...]"
+                 + "%n  create QUESTION ANSWER [CATEGORIES]"
+                 + "%n  edit ID QUESTION ANSWER [CATEGORIES]"
+                 + "%n  assign ITEM CATEGORIES"
                  + "%n  list"
                  + "%n  help"));
                 break;
@@ -88,6 +141,14 @@ public class Axiom {
                 System.err.println("Invalid command.");
                 return;
         }
+    }
+    public static void main(String []args) throws Exception {
+        instance = new Axiom("axiom.db");
+        // If the program is called without arguments then the GUI is launched.
+        if (args.length == 0)
+            Application.launch(AxiomGUI.class);
+        else
+            instance.processCLI(args);
         instance.save();
     }
 }

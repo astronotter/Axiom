@@ -26,8 +26,17 @@ class EditStage extends Stage {
         super();
         
         this.question = question;
-        if (this.question != null)
-            populate();
+        if (this.question != null) {
+            this.textArea.setText(question.getText());
+            this.answerArea.setText(question.getAnswer());
+
+            String tags = Axiom.getInstance()
+                .getCategories(question)
+                .stream()
+                .map(cat -> cat.getName())
+                .collect(Collectors.joining(","));
+            this.tagField.setText(tags);
+        }
         this.okButton.setOnAction(ev -> apply());
         this.cancelButton.setOnAction(ev -> this.close());
         this.vbox.setAlignment(Pos.CENTER);
@@ -35,53 +44,15 @@ class EditStage extends Stage {
         this.setScene(new Scene(vbox));
         this.setTitle("Add/Edit Question");
     }
-    private void populate() {
-        final FlatDB db = Axiom.getInstance().getDB();
-        
-        this.textArea.setText(question.getText());
-        this.answerArea.setText(question.getAnswer());
-        
-        // Generate tag list from database.
-        db.select(new Categorize[0])
-          .filter(cat -> cat.getElementID().equals(question.getID()))
-          .forEach(cat -> {
-              db.select(new Category[0])
-                .filter(cat2 -> cat2.getID().equals(cat.getCategoryID()))
-                .forEach(cat2 -> tagField.setText(
-                    (tagField.getText().length() != 0) ?
-                        tagField.getText() + "," + cat2.getName()
-                            : cat2.getName()));
-          });
-    }
     private void apply() {
-        final FlatDB db = Axiom.getInstance().getDB();
+        final String text = textArea.getText();
+        final String answer = textArea.getText();
+        final String tags = tagField.getText();
         
-        if (this.question == null)
-            this.question = db.insert(new Question());
-        this.question.setText(textArea.getText());
-        this.question.setAnswer(answerArea.getText());
-        
-        // Strip all categories from question.
-        db.select(new Categorize[0])
-          .filter(cat -> cat.getElementID().equals(this.question.getID()))
-          .forEach(cat -> db.remove(cat));
-        
-        // Parse and recategorize question.
-        String tokens[] = tagField.getText().split(",");
-        for (String token : tokens) {
-            final String categoryName = token.trim();
-            if (categoryName.equals(""))
-                continue;
-            
-            // Find the category by name, or create it if it does not exist
-            Category category =
-                db.select(new Category[0])
-                  .filter(cat -> cat.getName().equals(categoryName))
-                  .findAny()
-                  .orElseGet(() -> db.insert(new Category(categoryName)));
-            
-            db.insert(new Categorize(category.getID(), this.question.getID()));
-        }
+        this.question = (this.question == null)
+            ? Axiom.getInstance().createQuestion(text, answer)
+            : Axiom.getInstance().editQuestion(this.question, text, answer);
+        Axiom.getInstance().categorizeQuestion(this.question, tags);
         this.close();
     }
     public static void prompt(Question question) {

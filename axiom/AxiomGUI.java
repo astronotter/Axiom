@@ -75,7 +75,7 @@ class AxiomStage extends Stage {
         refilter();
     }
     void delete() {
-        Question selected = questionList.getSelectionModel().getSelectedItem();
+        final Question selected = questionList.getSelectionModel().getSelectedItem();
         Axiom.getInstance().getDB().remove(selected);
         
         // Refresh the list.
@@ -83,11 +83,8 @@ class AxiomStage extends Stage {
     }
     // Filter text has changed, we need to update the question list accordingly.
     void refilter() {
-        String filter = this.filterField.getText();
-        List<Question> questions = Axiom.getInstance().getDB()
-          .select(new Question[0])
-          .filter(question -> CategoryFilter.passes(filter, question))
-          .collect(Collectors.toList());
+        final String filter = this.filterField.getText();
+        final List<Question> questions = Axiom.getInstance().listQuestions(filter);
         
         // If the list is empty, grey out the quiz button.
         this.quizButton.disableProperty().set(questions.isEmpty());
