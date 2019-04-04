@@ -100,22 +100,57 @@ class AxiomStage extends Stage {
         questionList.setItems(FXCollections.observableArrayList(questions));
     }
     void edit(Question question) {
+        final FlatDB db = Axiom.getInstance().getDB();
         Stage stage = new Stage();
         stage.initModality(Modality.WINDOW_MODAL);
         
         TextArea textArea = new TextArea(question == null? "" : question.getText());
         TextArea answerArea = new TextArea(question == null? "" : question.getAnswer());
         TextField tagField = new TextField();
+        if (question != null) {
+            db.select(new Categorize[0])
+              .filter(cat -> cat.getElementID().equals(question.getID()))
+              .forEach(cat -> {
+                  db.select(new Category[0])
+                    .filter(cat2 -> cat2.getID().equals(cat.getCategoryID()))
+                    .forEach(cat2 -> tagField.setText(
+                        (tagField.getText().length() != 0) ?
+                            tagField.getText() + "," + cat2.getName()
+                                : cat2.getName()));
+              });
+        }
         
         Button okButton = new Button("OK");
         okButton.setOnAction(ev -> {
-            Question q = question;
-            if (q == null) {
-                q = new Question();
-                Axiom.getInstance().getDB().insert(q);
-            }
+            final Question q = (question != null)? question : db.insert(new Question());
             q.setText(textArea.getText());
             q.setAnswer(answerArea.getText());
+            
+            String tags[] = tagField.getText().split(",");
+            List<UUID> tagIDs = new ArrayList<UUID>();
+            for (String tag : tags) {
+                if (tag.equals(""))
+                    continue;
+                Category category =
+                    db.select(new Category[0])
+                      .filter(cat -> cat.getName().equals(tag))
+                      .findAny()
+                      .orElseGet(() -> db.insert(new Category(tag)));
+                db.select(new Categorize[0])
+                  .filter(cat -> cat.getCategoryID().equals(category.getID()))
+                  .findAny()
+                  .orElseGet(() -> db.insert(new Categorize(category.getID(), q.getID())));
+                
+                // Grab the id for the category while we are at it. We need this
+                // for tracking and removing any straggler categories attached
+                // to the question.
+                tagIDs.add(category.getID());
+            }
+            db.select(new Categorize[0])
+              .filter(cat -> cat.getElementID().equals(q.getID())
+                  && !tagIDs.contains(cat.getCategoryID()))
+              .forEach(cat -> db.remove(cat));
+            
             stage.close();
             refilter();
         });
