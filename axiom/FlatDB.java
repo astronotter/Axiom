@@ -21,6 +21,7 @@ public class FlatDB {
         try {
             String lines[] = Files.lines(Paths.get(filename)).toArray(String[]::new);
             for (String line : lines) {
+                line = line.replaceAll("%n", "\n");
                 String parts[] = line.split(":");
                 try {
                     Class tableClass = Class.forName(parts[0]);
@@ -34,8 +35,8 @@ public class FlatDB {
                 }
                 catch (Exception ex) {
                     System.err.println(String.format(
-                        "Warning: Cannot deserialize method for class '%s'. Ignoring entry.",
-                        parts[0]));
+                        "Warning: Cannot deserialize method for class '%s'. Ignoring entry. (%s)",
+                        parts[0], ex));
                 }
             }
         }
@@ -56,6 +57,7 @@ public class FlatDB {
             try {
                 Method serializeMethod = tableClass.getDeclaredMethod("serialize");
                 String text = (String)serializeMethod.invoke(entity);
+                text = text.replaceAll("\\R", "%n");    // [SO 9849015]
                 lines.add(String.format("%s:%s", tableClass.getName(), text));
             }
             catch (Exception ex) {

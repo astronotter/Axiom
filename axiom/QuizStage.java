@@ -2,6 +2,7 @@ package axiom;
 
 import java.util.*;
 import java.util.stream.*;
+import javax.script.*;
 import javafx.collections.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
@@ -30,7 +31,7 @@ public class QuizStage extends Stage {
 	   this.finishButton.setOnAction(ev -> this.close());
 	   this.vbox.setAlignment(Pos.CENTER);
 	   this.vbox.setPadding(new Insets(5, 5, 5, 5));
-	   this.setScene(new Scene(vbox));
+	   this.setScene(new Scene(this.vbox));
 	   this.setTitle("Quiz");
        
        next();
@@ -38,10 +39,14 @@ public class QuizStage extends Stage {
     private void next() {
        // Setup the next question, and hide the answer.
        Question question = this.iterator.next();
-       this.textLabel.setText(question.getText());
+       Axiom.getInstance().runQuestion(question);
+       
+       this.textLabel.setText(Axiom.getInstance().produceText(question.getText()));
        this.answerLabel.setText("");
-	   this.answerButton.setOnAction(ev ->
-           this.answerLabel.setText(question.getAnswer()));
+	   this.answerButton.setOnAction(ev -> {
+           String text = Axiom.getInstance().produceText(question.getAnswer());
+           this.answerLabel.setText(text);
+       });
        
        // If we run out of questions then grey out the next button.
        if (!this.iterator.hasNext())

@@ -50,9 +50,12 @@ class AxiomStage extends Stage {
         this.questionList.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent ev) {
-                if (ev.getClickCount() == 2)
-                    EditStage.prompt(questionList.getSelectionModel()
-                        .getSelectedItems().get(0));
+                if (ev.getClickCount() == 2) {
+                    Question selected = questionList.getSelectionModel()
+                        .getSelectedItems().get(0);
+                    EditStage.prompt(selected);
+                    refilter();
+                }
             }
         });
         this.filterField.setPromptText("Filter");

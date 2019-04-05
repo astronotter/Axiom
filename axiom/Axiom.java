@@ -2,6 +2,8 @@ package axiom;
 
 import java.util.*;
 import java.util.stream.*;
+import java.util.regex.*;
+import javax.script.*;
 import javafx.collections.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
@@ -10,9 +12,11 @@ import javafx.stage.*;
 import javafx.application.Application;
 
 public class Axiom {
-    private static Axiom instance;
-    private FlatDB db;
-    private AxiomGUI gui;
+    static Axiom instance;
+    
+    ScriptEngineManager scriptFactory = new ScriptEngineManager();
+    ScriptEngine js = scriptFactory.getEngineByName("JavaScript");
+    FlatDB db;
 
     private Axiom(String dbFileName) throws Exception {
         this.db = new FlatDB(dbFileName);
@@ -42,12 +46,13 @@ public class Axiom {
                      && categorizes.getElementID().equals(question.getID())))))
             .collect(Collectors.toList());
     }
-    public Question createQuestion(String text, String answer) {
-        return this.db.insert(new Question(text, answer));
+    public Question createQuestion(String text, String answer, String script) {
+        return this.db.insert(new Question(text, answer, script));
     }
-    public Question editQuestion(Question question, String text, String answer) {
+    public Question editQuestion(Question question, String text, String answer, String script) {
         question.setText(text);
         question.setAnswer(answer);
+        question.setScript(script);
         return question;
     }
     public void categorizeQuestion(Question question, String categories) {
@@ -91,6 +96,36 @@ public class Axiom {
             .findAny()
             .orElse(null);
     }
+    // Given text with embedded scripts, executes and inserts the results of the
+    // scripts into the text, to produce a final output string.
+    public String produceText(String text) {
+        final Pattern ptn = Pattern.compile("\\[([^\\]]+)\\]");   // Adapted from SO #14584018
+        final Matcher m = ptn.matcher(text);
+        
+        String output = "";
+        int i = 0;
+        while (m.find()) {
+            output += text.substring(i, m.start());
+            
+            try {
+                Object result = js.eval(m.group(1));
+                if (result != null)
+                    output += result;
+            }
+            catch (Exception ex) {
+                ;
+            }
+            i = m.end();
+        }
+        return output + text.substring(i);
+    }
+    public void runQuestion(Question question) {
+        try {
+            js.eval(question.getScript());
+        }
+        catch (ScriptException ex) {
+        }
+    }
     public void processCLI(String args[]) {
         switch (args[0]) {
             case "list": {
@@ -102,21 +137,21 @@ public class Axiom {
                 break;
             }
             case "create": {
-                if (args.length < 3) {
+                if (args.length < 4) {
                    System.err.println("Invalid number of arguments.");
                    return;
                 }
-                Question question = createQuestion(args[1], args[2]);
+                Question question = createQuestion(args[1], args[2], args[3]);
                 categorizeQuestion(question, args[3]);
                 break;
             }
             case "edit": {
-                if (args.length < 3) {
+                if (args.length < 4) {
                    System.err.println("Invalid number of arguments.");
                    return;
                 }
                 Question question = getQuestion(UUID.fromString(args[1]));
-                editQuestion(question, args[2], args[3]);
+                editQuestion(question, args[2], args[3], args[4]);
                 break;
             }
             case "assign":
@@ -131,8 +166,8 @@ public class Axiom {
                 System.err.println(String.format(
                    "Usage: java -jar Axiom [COMMAND ...]"
                  + "%nCommands:"
-                 + "%n  create QUESTION ANSWER [CATEGORIES]"
-                 + "%n  edit ID QUESTION ANSWER [CATEGORIES]"
+                 + "%n  create QUESTION ANSWER CATEGORIES SCRIPT"
+                 + "%n  edit ID QUESTION ANSWER CATEGORIES SCRIPT"
                  + "%n  assign ITEM CATEGORIES"
                  + "%n  list"
                  + "%n  help"));
@@ -142,8 +177,9 @@ public class Axiom {
                 return;
         }
     }
-    public static void main(String []args) throws Exception {
+    public static void main(String []args) throws Exception {        
         instance = new Axiom("axiom.db");
+        
         // If the program is called without arguments then the GUI is launched.
         if (args.length == 0)
             Application.launch(AxiomGUI.class);
