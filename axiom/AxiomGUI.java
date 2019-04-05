@@ -39,12 +39,12 @@ class AxiomStage extends Stage {
         this.menuBar.prefWidthProperty().bind(this.widthProperty());
         this.questionList.prefWidthProperty().bind(this.widthProperty());
         this.questionList.prefHeightProperty().bind(this.heightProperty());
-        this.questionList.setCellFactory(view -> new ListCell<Question>() {  // [so 36657299]
+        this.questionList.setCellFactory(view -> new ListCell<Question>() {  // [SO 36657299]
             @Override
             protected void updateItem(Question question, boolean empty) {
                 super.updateItem(question, empty);
-                setText((!empty && question != null)?
-                    question.toString() : null);
+                setText((empty || question == null)? null :
+                    question.getText().replaceAll("\\[([^\\]]+)\\]", "[...]"));
             }
         });
         this.questionList.setOnMouseClicked(new EventHandler<MouseEvent>() {

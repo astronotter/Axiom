@@ -11,19 +11,15 @@ import javafx.stage.*;
 import javafx.event.*;
 import javafx.geometry.*;
 
-class EditScriptStage extends Stage {
-}
-
 public class EditStage extends Stage {
     Question question;
     
     TextArea textArea = new TextArea();
     TextArea answerArea = new TextArea();
-    TextArea scriptArea = new TextArea();
     TextField tagField = new TextField();
     Button okButton = new Button("OK");
     Button cancelButton = new Button("Cancel");
-    VBox vbox = new VBox(textArea, answerArea, scriptArea, tagField,
+    VBox vbox = new VBox(textArea, answerArea, tagField,
         new HBox(okButton, cancelButton));
     
     public EditStage(Question question) {
@@ -33,7 +29,6 @@ public class EditStage extends Stage {
         if (this.question != null) {
             this.textArea.setText(question.getText());
             this.answerArea.setText(question.getAnswer());
-            this.scriptArea.setText(question.getScript());
 
             String tags = Axiom.getInstance()
                 .getCategories(question)
@@ -52,12 +47,11 @@ public class EditStage extends Stage {
     private void apply() {
         final String text = textArea.getText();
         final String answer = answerArea.getText();
-        final String script = scriptArea.getText();
         final String tags = tagField.getText();
         
         this.question = (this.question == null)
-            ? Axiom.getInstance().createQuestion(text, answer, script)
-            : Axiom.getInstance().editQuestion(this.question, text, answer, script);
+            ? Axiom.getInstance().createQuestion(text, answer)
+            : Axiom.getInstance().editQuestion(this.question, text, answer);
         Axiom.getInstance().categorizeQuestion(this.question, tags);
         this.close();
     }

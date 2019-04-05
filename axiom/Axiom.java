@@ -46,13 +46,12 @@ public class Axiom {
                      && categorizes.getElementID().equals(question.getID())))))
             .collect(Collectors.toList());
     }
-    public Question createQuestion(String text, String answer, String script) {
-        return this.db.insert(new Question(text, answer, script));
+    public Question createQuestion(String text, String answer) {
+        return this.db.insert(new Question(text, answer));
     }
-    public Question editQuestion(Question question, String text, String answer, String script) {
+    public Question editQuestion(Question question, String text, String answer) {
         question.setText(text);
         question.setAnswer(answer);
-        question.setScript(script);
         return question;
     }
     public void categorizeQuestion(Question question, String categories) {
@@ -112,19 +111,14 @@ public class Axiom {
                 if (result != null)
                     output += result;
             }
-            catch (Exception ex) {
-                ;
+            catch (ScriptException ex) {
+                Alert alert = new Alert(Alert.AlertType.ERROR,
+                    String.format("Failed to run script: %s", ex));
+                alert.showAndWait();
             }
             i = m.end();
         }
         return output + text.substring(i);
-    }
-    public void runQuestion(Question question) {
-        try {
-            js.eval(question.getScript());
-        }
-        catch (ScriptException ex) {
-        }
     }
     public void processCLI(String args[]) {
         switch (args[0]) {
@@ -141,7 +135,7 @@ public class Axiom {
                    System.err.println("Invalid number of arguments.");
                    return;
                 }
-                Question question = createQuestion(args[1], args[2], args[3]);
+                Question question = createQuestion(args[1], args[2]);
                 categorizeQuestion(question, args[3]);
                 break;
             }
@@ -151,7 +145,7 @@ public class Axiom {
                    return;
                 }
                 Question question = getQuestion(UUID.fromString(args[1]));
-                editQuestion(question, args[2], args[3], args[4]);
+                editQuestion(question, args[2], args[3]);
                 break;
             }
             case "assign":
@@ -166,8 +160,8 @@ public class Axiom {
                 System.err.println(String.format(
                    "Usage: java -jar Axiom [COMMAND ...]"
                  + "%nCommands:"
-                 + "%n  create QUESTION ANSWER CATEGORIES SCRIPT"
-                 + "%n  edit ID QUESTION ANSWER CATEGORIES SCRIPT"
+                 + "%n  create QUESTION ANSWER CATEGORIES"
+                 + "%n  edit ID QUESTION ANSWER CATEGORIES"
                  + "%n  assign ITEM CATEGORIES"
                  + "%n  list"
                  + "%n  help"));

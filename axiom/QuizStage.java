@@ -38,9 +38,7 @@ public class QuizStage extends Stage {
 	}
     private void next() {
        // Setup the next question, and hide the answer.
-       Question question = this.iterator.next();
-       Axiom.getInstance().runQuestion(question);
-       
+       Question question = this.iterator.next();       
        this.textLabel.setText(Axiom.getInstance().produceText(question.getText()));
        this.answerLabel.setText("");
 	   this.answerButton.setOnAction(ev -> {
