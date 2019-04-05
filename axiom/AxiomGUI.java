@@ -43,8 +43,14 @@ class AxiomStage extends Stage {
             @Override
             protected void updateItem(Question question, boolean empty) {
                 super.updateItem(question, empty);
-                setText((empty || question == null)? null :
-                    question.getText().replaceAll("\\[([^\\]]+)\\]", "[...]"));
+                
+                String text = null;
+                if (!empty && question != null) {
+                    text = question.getText()
+                        .replaceAll("\\[([^\\]]+)\\]", "[...]")
+                        .replaceAll("\\R", "\t");
+                }
+                setText(text);
             }
         });
         this.questionList.setOnMouseClicked(new EventHandler<MouseEvent>() {
